@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from app import schemas, db, models
-from sqlalchemy import or_
+from app import schemas, db, crud
+from pydantic import EmailStr
 router = APIRouter(
     prefix="/user",
     tags=["User"],
@@ -9,22 +9,24 @@ router = APIRouter(
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.ResponseUser)
 async def create_user(user: schemas.BaseUser, db: Session = Depends(db.get_db)):
-    db_user = await db.query(models.User).filter(or_(models.User.username == user.username, models.User.email == user.email))
-    
+    db_user = crud.get_user_by_username_or_email(user, db)
+
     if db_user.first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email or username taken")
-    
-    new_user = models.User(**user.model_dump())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    crud.create_user(user, db)
     return db_user.first()
 
-@router.get("/{username}", status_code=status.HTTP_200_OK)
-async def get_user_with_notes(username: str, db: Session = Depends(db.get_db)):
-    db_user = db.query(models.User).filter(models.User.username == username).first()  
+@router.get("/{username}", status_code=status.HTTP_200_OK, response_model=schemas.ResponseUser)
+async def get_user_by_notes(username: str, db: Session = Depends(db.get_db)):
+    db_user = crud.get_user_by_username(username=username, db=db).first()
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
-    
     return db_user
     
+@router.delete("/{email}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_by_email(email: EmailStr, db: Session = Depends(db.get_db)):
+    db_user = crud.get_user_by_email(email=email, db=db)
+    if db_user.first() is None: 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
+    db_user.delete(synchronize_session=False)
+    db.commit()
