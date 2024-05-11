@@ -1,8 +1,10 @@
-from typing import Union
 from pydantic import EmailStr
-from app import db, models, schemas, utils
+from app.Models import schemas
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+
+from app.Models import models
+from app.Utilities import utils
 
 def get_user_by_email(email: EmailStr, db: Session):
     return db.query(models.User).filter(models.User.email == email)  
