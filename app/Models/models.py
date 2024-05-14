@@ -13,7 +13,6 @@ class Note(db.Base):
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
     
-    owner = relationship("User", back_populates="note")
     
 class User(db.Base):
     __tablename__ = 'users'
@@ -24,4 +23,3 @@ class User(db.Base):
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
     
-    note = relationship("Note", back_populates="owner")
